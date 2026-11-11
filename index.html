@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="What staying on end-of-life Magento 1 really costs per year, compared with a one-time migration to Magento 2. Editable assumptions, honest numbers, shareable results.">
+<title>Magento 1 vs Magento 2 | Migration Cost Calculator</title>
+<style>
+  :root{
+    --paper:#f7f8f4; --card:#fff; --card2:#fafbf8; --ink:#203d36; --muted:#6a7872;
+    --line:#dce2dc; --green:#245e4e; --green-soft:#edf3e7; --orange:#bb673f; --orange-soft:#f6ece6;
+    --soft:#edf2e9; --radius:0;
+    --shadow:0 1px 2px rgba(32,61,54,.03), 0 12px 28px rgba(32,61,54,.07), 0 32px 72px rgba(32,61,54,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:'Manrope','DM Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+    font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1020px;margin:0 auto;padding:30px 22px 90px}
+  .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:16px}
+
+  /* ── wizard bar ── */
+  .wizbar{display:flex;align-items:center;gap:0;margin:0 0 30px;padding:0;list-style:none}
+  .wstep{display:flex;align-items:center;gap:8px;border:0;background:none;font:inherit;cursor:pointer;padding:6px 2px;color:var(--muted)}
+  .wstep:disabled{cursor:default}
+  .wstep .wn{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:var(--line);color:var(--muted);flex:0 0 auto;transition:all .2s}
+  .wstep .wl{font-size:12.5px;font-weight:700;white-space:nowrap}
+  .wstep.done .wn{background:var(--green-soft);color:var(--green)}
+  .wstep.done{color:var(--green)}
+  .wstep.current .wn{background:var(--ink);color:#fff}
+  .wstep.current{color:var(--ink)}
+  .wstep:not(:disabled):hover .wl{text-decoration:underline}
+  .wline{flex:1;height:2px;background:var(--line);margin:0 10px;min-width:14px}
+  .wline.done{background:var(--green)}
+  .wstep:focus-visible{outline:none}
+  .wstep:focus-visible .wn{box-shadow:0 0 0 3px rgba(36,94,78,.25)}
+  @media(max-width:640px){.wstep .wl{display:none}.wstep.current .wl{display:block}}
+
+  /* ── screens ── */
+  .screen{display:none}
+  .screen.active{display:block;animation:fadeUp .32s ease both}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+  /* ── hero (screen 1) ── */
+  h1{font-size:clamp(28px,3.5vw,44px);line-height:1.07;margin:.1em 0 .25em;letter-spacing:-.012em;max-width:22ch}
+  h1 .m1{color:var(--orange)} h1 .m2{color:var(--green)}
+  .lede{color:var(--muted);max-width:62ch;font-size:16px;margin:0 0 14px}
+  .facts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 26px}
+  .fact{font-size:12px;font-weight:700;color:var(--orange);background:var(--orange-soft);border-radius:999px;padding:4px 12px}
+
+  /* ── step heads ── */
+  .step-head{display:flex;align-items:center;gap:10px;margin:0 0 4px}
+  .stepnum{width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center;flex:0 0 auto}
+  .step-head h2{font-size:21px;margin:0;letter-spacing:-.01em}
+  .step-sub{color:var(--muted);font-size:13.5px;margin:0 0 16px;padding-left:36px;max-width:68ch}
+
+  /* ── question list: one aligned column, one question per row ── */
+  .panel{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);padding:6px 26px}
+  .q{padding:20px 0;border-bottom:1px solid var(--soft);max-width:560px}
+  .q:last-of-type{border-bottom:0}
+  .q .ql{display:block;font-size:15px;font-weight:700;margin:0 0 3px;letter-spacing:-.005em}
+  .q .ql .u{color:var(--muted);font-weight:600;font-size:13px}
+  .q .qhint{display:block;color:var(--muted);font-size:12.5px;margin:0 0 10px;line-height:1.45;max-width:54ch}
+  .q .qnote{display:block;color:var(--muted);font-size:12.5px;margin-top:8px;line-height:1.45;max-width:54ch}
+  .q .qnote b{color:var(--green)}
+  .ipt{display:flex;align-items:center;border:1px solid var(--line);border-radius:3px;background:var(--card2);padding:0 12px;max-width:340px;transition:border-color .15s,box-shadow .15s}
+  .ipt:focus-within{border-color:var(--green);box-shadow:0 0 0 3px rgba(36,94,78,.12)}
+  .ipt .pre{color:var(--muted);font-size:13.5px;white-space:nowrap}
+  .ipt input{border:0;background:transparent;padding:11px 7px;width:100%;font-size:16px;font-weight:600;font-family:inherit;color:var(--ink);outline:none;min-width:0}
+  select{width:100%;max-width:340px;border:1px solid var(--line);border-radius:3px;background:var(--card2);padding:11px 12px;font:inherit;font-weight:600;color:var(--ink);cursor:pointer}
+  select:focus-visible{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(36,94,78,.12)}
+  .err{display:none;color:#b94c33;font-size:12px;font-weight:700;margin-top:6px}
+  .q.invalid .err{display:block}
+  .q.invalid .ipt{border-color:#b94c33}
+
+  /* choice cards (radio rows with plain-language descriptions) */
+  fieldset.choice{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;max-width:460px}
+  fieldset.choice legend{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .choice label{display:flex;align-items:flex-start;gap:11px;border:1px solid var(--line);background:var(--card2);padding:12px 14px;cursor:pointer;margin:0;transition:border-color .15s,background .15s}
+  .choice input{accent-color:var(--green);margin-top:3px;width:15px;height:15px;flex:0 0 auto}
+  .choice label.on{border-color:var(--green);background:var(--green-soft)}
+  .choice label:focus-within{box-shadow:0 0 0 3px rgba(36,94,78,.18)}
+  .choice b{font-size:13.5px;display:block}
+  .choice span{display:block;font-size:12px;color:var(--muted);line-height:1.4}
+
+  /* quiet preset links */
+  .plinks{margin-top:8px;font-size:12.5px;color:var(--muted)}
+  .plink{border:0;background:none;padding:0 2px;font:inherit;font-size:12.5px;font-weight:700;color:var(--green);cursor:pointer}
+  .plink:hover,.plink:focus-visible{text-decoration:underline;outline:none}
+  .plink[aria-pressed="true"]{text-decoration:underline}
+
+  .toggle{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;cursor:pointer}
+  .toggle input{width:16px;height:16px;accent-color:var(--green)}
+  .opt{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--soft);padding:2px 8px;border-radius:999px;margin-left:6px}
+  .ghostbtn{color:var(--green);font-size:12px;font-weight:700;cursor:pointer;border:0;background:none;padding:0;font-family:inherit}
+  .ghostbtn:hover,.ghostbtn:focus-visible{text-decoration:underline;outline:none}
+
+  /* live totals under each cost step */
+  .live{margin:0;padding:18px 0;border-top:2px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;max-width:560px}
+  .live .k{font-size:13px;color:var(--muted);font-weight:700}
+  .live .v{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums}
+  .live .v.warm{color:var(--orange)} .live .v.cool{color:var(--green)}
+  .live .pct{font-size:12px;color:var(--muted);font-weight:600}
+
+  details.explain{margin:0 0 14px;border:1px solid var(--line);background:var(--card2);max-width:560px}
+  details.explain summary{cursor:pointer;font-size:12.5px;font-weight:700;padding:9px 12px;list-style:none;display:flex;align-items:center;gap:7px}
+  details.explain summary::before{content:"+";font-weight:800;color:var(--green)}
+  details.explain[open] summary::before{content:"–"}
+  details.explain summary::-webkit-details-marker{display:none}
+  details.explain .body{padding:0 12px 11px;font-size:12.5px;color:var(--muted);line-height:1.55}
+
+  /* ── nav row ── */
+  .navrow{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:24px}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:3px;padding:12px 22px;font:inherit;font-size:13.5px;font-weight:800;cursor:pointer;box-shadow:var(--shadow)}
+  .btn:hover{border-color:var(--green)}
+  .btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+  .btn.primary:hover{filter:brightness(1.07)}
+  .btn.back{box-shadow:none;background:transparent;border-color:transparent;color:var(--muted)}
+  .btn.back:hover{color:var(--ink);border-color:var(--line)}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(36,94,78,.25)}
+  .navhint{font-size:11.5px;color:var(--muted);margin-left:auto;margin-right:12px}
+  @media(max-width:560px){.navhint{display:none}}
+
+  /* ── verdict screen ── */
+  .verdict{background:linear-gradient(180deg,#fff,var(--card2));border:1px solid var(--line);box-shadow:var(--shadow);padding:24px 26px;margin:0 0 10px}
+  .verdict .big{font-size:clamp(20px,2.5vw,28px);line-height:1.22;letter-spacing:-.01em;margin:0 0 7px;font-weight:700;max-width:34ch}
+  .verdict .big b.save{color:var(--green)} .verdict .big b.be{color:var(--orange)}
+  .verdict .note{color:var(--muted);font-size:13.5px;margin:0;max-width:80ch}
+  .verdict .share-rate{margin:9px 0 0;font-size:12.5px;color:var(--orange);font-weight:700}
+  .based{font-size:12.5px;color:var(--muted);margin:0 0 20px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:720px){.cols{grid-template-columns:1fr}}
+  .stackcard{border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);padding:18px}
+  .stackcard h3{margin:0 0 2px;font-size:16px;display:flex;align-items:center;gap:8px}
+  .stackcard .tag{margin-left:auto;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .stackcard .capt{font-size:12px;color:var(--muted);margin:0 0 12px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .dot.m1{background:var(--orange)} .dot.m2{background:var(--green)}
+  .line{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+  .line:last-of-type{border-bottom:0}
+  .line .lbl small{display:block;color:var(--muted);font-size:11px}
+  .line .val{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+  .total{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:12px;padding-top:12px;border-top:2px solid var(--line)}
+  .total .t-lbl{font-size:12.5px;color:var(--muted)}
+  .total .t-val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .m1 .t-val{color:var(--orange)} .m2 .t-val{color:var(--green)}
+  .onetime{background:var(--orange-soft);padding:10px 12px;margin:0 0 12px;display:flex;justify-content:space-between;align-items:baseline}
+  .onetime .k{font-size:12px;color:var(--muted)} .onetime .v{font-weight:800;font-variant-numeric:tabular-nums}
+  .cumwrap{margin-top:16px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);padding:20px}
+  .cumwrap h3{margin:0 0 3px;font-size:15.5px}
+  .cumwrap .capt{font-size:12px;color:var(--muted);margin:0 0 12px;max-width:80ch}
+  .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin:0 0 6px}
+  .legend span{display:flex;align-items:center;gap:6px;font-weight:700}
+  .legend i{width:18px;height:3px;display:inline-block}
+  .chart{width:100%;height:auto;display:block;margin:0 0 16px}
+  .chart text{font-family:inherit}
+  .tscroll{overflow-x:auto}
+  table.cum{width:100%;min-width:560px;border-collapse:collapse;font-size:13px}
+  table.cum th,table.cum td{padding:8px 6px;text-align:right;font-variant-numeric:tabular-nums}
+  table.cum th:first-child,table.cum td:first-child{text-align:left}
+  table.cum thead th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line)}
+  table.cum tbody tr{border-bottom:1px solid var(--soft)}
+  table.cum .be-row{background:var(--green-soft)}
+  .bar{height:7px;background:var(--line);overflow:hidden;display:flex;margin-top:4px}
+  .bar i{display:block;height:100%}
+  .cheaper{font-weight:800}
+  .cheaper.m1v{color:var(--orange)} .cheaper.m2v{color:var(--green)}
+  .risks{margin-top:30px}
+  .risks h2{font-size:19px;margin:0 0 4px;letter-spacing:-.01em}
+  .risks p.rsub{color:var(--muted);font-size:13.5px;margin:0 0 14px}
+  .riskgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+  .risk{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);padding:13px 15px}
+  .risk b{display:block;font-size:13.5px;margin-bottom:2px}
+  .risk span{font-size:12.5px;color:var(--muted);line-height:1.45;display:block}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+  details.method{margin-top:24px;border:1px solid var(--line);background:var(--card)}
+  details.method summary{cursor:pointer;padding:14px 18px;font-weight:800;font-size:14px;list-style:none;display:flex;align-items:center;gap:8px}
+  details.method summary::before{content:"+";font-weight:800;color:var(--green)}
+  details.method[open] summary::before{content:"–"}
+  details.method summary::-webkit-details-marker{display:none}
+  details.method .mbody{padding:0 18px 16px;color:var(--muted);font-size:12.5px;line-height:1.6}
+  details.method .mbody p{margin:6px 0;padding-left:16px;position:relative}
+  details.method .mbody p::before{content:"";position:absolute;left:2px;top:7px;width:5px;height:5px;border-radius:50%;background:var(--line)}
+  .foot{margin-top:26px;font-size:12px;color:var(--muted)}
+
+  /* ── sticky summary (results only) ── */
+  .sticky{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:#fff;padding:10px 18px;display:flex;align-items:center;gap:18px;justify-content:center;flex-wrap:wrap;font-size:13px;transform:translateY(130%);visibility:hidden;pointer-events:none;transition:transform .25s ease,visibility .25s;z-index:50;box-shadow:0 -6px 24px rgba(32,61,54,.25)}
+  .sticky.show{transform:translateY(0);visibility:visible;pointer-events:auto}
+  .sticky .s-item{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+  .sticky .s-k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#b8cab1;font-weight:700}
+  .sticky .s-v{font-weight:800;font-variant-numeric:tabular-nums}
+  .sticky .s-v.m1c{color:#e7c9b5} .sticky .s-v.m2c{color:#c4e3c9}
+  .sticky a{color:#fff;font-weight:800;font-size:12.5px}
+
+  @media print{
+    body{background:#fff}
+    .wrap{padding:0;max-width:none}
+    .screen{display:block!important;animation:none!important;margin-bottom:18px}
+    .wizbar,.navrow,.actions,.plinks,.ghostbtn,.sticky,details.method,.navhint{display:none!important}
+    .panel,.stackcard,.verdict,.cumwrap,.risk{box-shadow:none;break-inside:avoid}
+    .cols{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">scandiweb · total cost of staying vs moving</div>
+
+  <!-- wizard progress -->
+  <nav class="wizbar" aria-label="Steps">
+    <button class="wstep" type="button" data-goto="1"><span class="wn">1</span><span class="wl">Your store</span></button>
+    <span class="wline" data-line="1"></span>
+    <button class="wstep" type="button" data-goto="2"><span class="wn">2</span><span class="wl">Cost of staying</span></button>
+    <span class="wline" data-line="2"></span>
+    <button class="wstep" type="button" data-goto="3"><span class="wn">3</span><span class="wl">Cost of moving</span></button>
+    <span class="wline" data-line="3"></span>
+    <button class="wstep" type="button" data-goto="4"><span class="wn">4</span><span class="wl">The verdict</span></button>
+  </nav>
+
+  <!-- SCREEN 1 · store -->
+  <form class="screen" id="screen-1" novalidate>
+    <h1>Is <span class="m1">Magento 1</span> really cheaper than moving to <span class="m2">Magento 2</span>?</h1>
+    <p class="lede">Staying put feels free because there's no invoice called "staying". But an end-of-life platform charges you every year — in patching, scarce developers and risk. Answer a few questions and see how fast a one-time move pays for itself.</p>
+    <div class="facts" role="list">
+      <span class="fact" role="listitem">Magento 1 end of life: June 2020</span>
+      <span class="fact" role="listitem">No official security patches</span>
+      <span class="fact" role="listitem">Extensions unsupported</span>
+    </div>
+    <div class="panel">
+      <div class="q" id="f-sales">
+        <label class="ql" for="sales">How much do you sell online in a year?</label>
+        <span class="qhint">Your yearly online revenue. A rough figure is fine.</span>
+        <div class="ipt"><span class="pre">$</span><input id="sales" data-k="sales" type="text" inputmode="numeric"></div>
+        <span class="err">Enter your yearly online sales to continue.</span>
+        <div class="plinks" id="sales-presets">No exact number handy? Try&nbsp;</div>
+      </div>
+      <div class="q" id="f-aov">
+        <label class="ql" for="aov">What's your average order value?</label>
+        <div class="ipt"><span class="pre">$</span><input id="aov" data-k="aov" type="number" min="1" step="any"></div>
+        <span class="err">Enter an average order value above zero.</span>
+        <span class="qnote" id="orders-note"></span>
+      </div>
+      <div class="q">
+        <label class="ql" for="skus">Roughly how many products (SKUs) do you have?</label>
+        <span class="qhint">A rough count is fine — it only nudges the migration estimate.</span>
+        <div class="ipt"><input id="skus" data-k="skus" type="number" min="1" step="any"></div>
+      </div>
+      <div class="q">
+        <span class="ql" id="cx-label">How custom is your store?</span>
+        <span class="qhint">Pick the closest match — this sets the starting migration estimate.</span>
+        <fieldset class="choice" id="cx-seg" aria-labelledby="cx-label">
+          <legend>Store complexity</legend>
+          <label data-v="simple"><input type="radio" name="cx" value="simple"><span><b>Simple</b><span>Mostly standard theme, a handful of extensions, no heavy integrations.</span></span></label>
+          <label data-v="standard"><input type="radio" name="cx" value="standard"><span><b>Standard</b><span>Some custom features, a customised theme, the usual payment and shipping integrations.</span></span></label>
+          <label data-v="complex"><input type="radio" name="cx" value="complex"><span><b>Complex</b><span>Heavy customisation, many extensions, ERP / POS / marketplace integrations.</span></span></label>
+        </fieldset>
+      </div>
+    </div>
+    <div class="navrow">
+      <span></span>
+      <span class="navhint">Enter ↵ also continues</span>
+      <button class="btn primary" type="submit">Next: what staying costs →</button>
+    </div>
+  </form>
+
+  <!-- SCREEN 2 · M1 costs -->
+  <form class="screen" id="screen-2" novalidate>
+    <div class="step-head"><span class="stepnum">2</span><h2>What staying on Magento 1 costs you</h2></div>
+    <p class="step-sub">Four quick budget questions. The defaults are editable examples — use your real numbers where you know them.</p>
+    <div class="panel">
+      <div class="q">
+        <label class="ql" for="m1h">What do you pay for hosting? <span class="u">$ / month</span></label>
+        <div class="ipt"><span class="pre">$</span><input id="m1h" data-k="m1h" type="number" min="0" step="any"></div>
+      </div>
+      <div class="q">
+        <label class="ql" for="m1p">What does keeping it patched cost? <span class="u">$ / year</span></label>
+        <span class="qhint">There have been no official Magento 1 patches since June 2020 — this is a backport service or developer time to stay PCI-safe.</span>
+        <div class="ipt"><span class="pre">$</span><input id="m1p" data-k="m1p" type="number" min="0" step="any"></div>
+      </div>
+      <div class="q">
+        <label class="ql" for="m1m">What do you spend on maintenance &amp; development? <span class="u">$ / year</span></label>
+        <span class="qhint">Bug fixes, compatibility work, emergency support. If an agency retainer covers this, use that figure. M1 developers are scarce, so rates run higher.</span>
+        <div class="ipt"><span class="pre">$</span><input id="m1m" data-k="m1m" type="number" min="0" step="any"></div>
+      </div>
+      <div class="q">
+        <label class="ql" for="m1e">And on extension or theme fixes? <span class="u">$ / year</span></label>
+        <span class="qhint">Most M1 extension vendors stopped updating years ago — conflicts become custom fixes.</span>
+        <div class="ipt"><span class="pre">$</span><input id="m1e" data-k="m1e" type="number" min="0" step="any"></div>
+      </div>
+      <div class="q">
+        <label class="toggle"><input type="checkbox" id="risk"> Add revenue at risk <span class="opt">optional</span></label>
+        <div id="risk-wrap" hidden style="margin-top:10px">
+          <span class="qhint">Performance / conversion drag plus breach exposure, as a share of yearly sales.</span>
+          <div class="ipt" style="max-width:220px"><input id="riskPct" data-k="riskPct" type="number" min="0" step="any"><span class="pre">% of sales</span></div>
+        </div>
+      </div>
+      <div class="live"><span class="k">Your yearly cost of staying</span><span><span class="v warm" id="m1-live"></span> <span class="pct" id="m1-live-pct"></span></span></div>
+    </div>
+    <div class="navrow">
+      <button class="btn back" type="button" data-goto="1">← Back</button>
+      <span class="navhint">Enter ↵ also continues</span>
+      <button class="btn primary" type="submit">Next: what moving costs →</button>
+    </div>
+  </form>
+
+  <!-- SCREEN 3 · M2 costs -->
+  <form class="screen" id="screen-3" novalidate>
+    <div class="step-head"><span class="stepnum">3</span><h2>What moving to Magento 2 costs</h2></div>
+    <p class="step-sub">One investment up front, then normal running costs on a supported platform.</p>
+    <div class="panel">
+      <div class="q">
+        <label class="ql" for="mig">The one-time migration <span class="u">$, once</span></label>
+        <span class="qhint" id="mig-basis"></span>
+        <div class="ipt"><span class="pre">$</span><input id="mig" data-k="mig" type="number" min="0" step="any"></div>
+        <span class="qnote"><button class="ghostbtn" id="reest" type="button" hidden>↺ Back to the estimate</button></span>
+      </div>
+      <div class="q">
+        <label class="ql" for="hz">Spread that cost over how many years?</label>
+        <span class="qhint">Only changes how the one-time cost shows up in the per-year comparison.</span>
+        <select id="hz"><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years</option><option value="5">5 years</option></select>
+      </div>
+      <div class="q">
+        <label class="ql" for="m2h">Hosting on Magento 2 <span class="u">$ / month</span></label>
+        <div class="ipt"><span class="pre">$</span><input id="m2h" data-k="m2h" type="number" min="0" step="any"></div>
+      </div>
+      <div class="q">
+        <label class="ql" for="m2m">Maintenance &amp; development <span class="u">$ / year</span></label>
+        <span class="qhint">Supported ecosystem, plentiful developers — typically lower than M1 upkeep.</span>
+        <div class="ipt"><span class="pre">$</span><input id="m2m" data-k="m2m" type="number" min="0" step="any"></div>
+      </div>
+      <div class="q">
+        <label class="ql" for="m2s">Security patches <span class="u">$ / year</span></label>
+        <span class="qhint">Official patches ship free on Magento 2 Open Source — most stores leave this at $0.</span>
+        <div class="ipt"><span class="pre">$</span><input id="m2s" data-k="m2s" type="number" min="0" step="any"></div>
+      </div>
+      <div class="q">
+        <span class="ql" id="lic-label">Which licence would you run?</span>
+        <fieldset class="choice" id="lic-seg" aria-labelledby="lic-label">
+          <legend>Platform licence</legend>
+          <label data-v="oss"><input type="radio" name="lic" value="oss"><span><b>Magento Open Source</b><span>Free licence. The usual choice for stores moving off Magento 1.</span></span></label>
+          <label data-v="adobe"><input type="radio" name="lic" value="adobe"><span><b>Adobe Commerce</b><span>Paid licence with Adobe's enterprise features — enter your quote below.</span></span></label>
+        </fieldset>
+        <div id="lic-wrap" hidden style="margin-top:10px">
+          <div class="ipt" style="max-width:260px"><span class="pre">$</span><input id="licCost" data-k="licCost" type="number" min="0" step="any"><span class="pre">/ year</span></div>
+          <span class="qnote">Example figure — Adobe quotes vary with GMV.</span>
+        </div>
+      </div>
+      <div class="q">
+        <label class="ql" for="m2e">Extension / theme renewals <span class="u">$ / year</span></label>
+        <div class="ipt"><span class="pre">$</span><input id="m2e" data-k="m2e" type="number" min="0" step="any"></div>
+      </div>
+      <div class="live"><span class="k">Ongoing cost after migration</span><span><span class="v cool" id="m2-live"></span> <span class="pct" id="m2-live-pct"></span></span></div>
+    </div>
+    <div class="navrow">
+      <button class="btn back" type="button" data-goto="2">← Back</button>
+      <span class="navhint">Enter ↵ also continues</span>
+      <button class="btn primary" type="submit">See the verdict →</button>
+    </div>
+  </form>
+
+  <!-- SCREEN 4 · verdict -->
+  <section class="screen" id="screen-4" aria-labelledby="s4h">
+    <div class="step-head"><span class="stepnum">4</span><h2 id="s4h">The verdict</h2></div>
+    <p class="step-sub">Computed from your inputs — every number below is traceable to a field you can edit.</p>
+    <div class="verdict" id="verdict" aria-live="polite">
+      <p class="big" id="verdict-big"></p>
+      <p class="note" id="verdict-note"></p>
+      <p class="share-rate" id="verdict-share" hidden></p>
+    </div>
+    <p class="based"><span id="based-txt"></span> — <button class="ghostbtn" type="button" data-goto="1">edit store</button> · <button class="ghostbtn" type="button" data-goto="2">edit M1 costs</button> · <button class="ghostbtn" type="button" data-goto="3">edit M2 costs</button></p>
+
+    <div class="cols">
+      <section class="stackcard m1" aria-labelledby="st1h">
+        <h3 id="st1h"><span class="dot m1"></span>Stay on Magento 1 <span class="tag">per year</span><button class="ghostbtn" type="button" data-goto="2" style="margin-left:10px">edit</button></h3>
+        <p class="capt">Recurring, and rising as the platform ages.</p>
+        <div id="m1-lines"></div>
+        <div class="total"><span class="t-lbl">Yearly cost of staying</span><span class="t-val" id="m1-total"></span></div>
+      </section>
+      <section class="stackcard m2" aria-labelledby="st2h">
+        <h3 id="st2h"><span class="dot m2"></span>Move to Magento 2 <span class="tag">amortised / year</span><button class="ghostbtn" type="button" data-goto="3" style="margin-left:10px">edit</button></h3>
+        <p class="capt">A one-time investment, then lower ongoing cost.</p>
+        <div class="onetime"><span class="k">One-time migration</span><span class="v" id="m2-mig"></span></div>
+        <div id="m2-lines"></div>
+        <div class="total"><span class="t-lbl" id="m2-total-lbl"></span><span class="t-val" id="m2-total"></span></div>
+      </section>
+    </div>
+
+    <div class="cumwrap">
+      <h3>Where the lines cross</h3>
+      <p class="capt" id="cum-capt"></p>
+      <div class="legend"><span><i style="background:var(--orange)"></i>Stay on Magento 1</span><span><i style="background:var(--green)"></i>Move to Magento 2</span></div>
+      <svg id="chart" class="chart" viewBox="0 0 640 250" role="img" aria-label="Cumulative cost of staying on Magento 1 versus moving to Magento 2 over five years"></svg>
+      <div class="tscroll">
+        <table class="cum">
+          <thead><tr><th>After</th><th>Stay on M1</th><th>Move to M2</th><th>Difference</th><th style="width:30%">Split</th></tr></thead>
+          <tbody id="cum-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <section class="risks" aria-labelledby="rh">
+      <h2 id="rh">What the numbers don't show</h2>
+      <p class="rsub">The calculator only counts what you budget. These costs arrive unbudgeted.</p>
+      <div class="riskgrid">
+        <div class="risk"><b>PCI exposure</b><span>Running card payments on an unpatched platform makes PCI-DSS compliance and breach liability your problem, not Adobe's.</span></div>
+        <div class="risk"><b>The stack beneath</b><span>M1 runs on PHP versions that are themselves end-of-life — the OS, PHP and platform all age together.</span></div>
+        <div class="risk"><b>Extension vendors are gone</b><span>Most M1 extension makers stopped shipping updates years ago. Every conflict is now a custom fix.</span></div>
+        <div class="risk"><b>The hiring pool shrinks</b><span>Fewer developers know M1 every year. Scarcity sets their rate — and your bus factor.</span></div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn primary" id="copylink" type="button">Copy comparison link</button>
+      <button class="btn" id="csvbtn" type="button">Download yearly costs (CSV)</button>
+      <button class="btn" id="printbtn" type="button">Print / save PDF</button>
+      <button class="btn" id="resetall" type="button">Start over</button>
+    </div>
+
+    <details class="method">
+      <summary>Methodology, sources and honesty notes</summary>
+      <div class="mbody">
+        <p>All defaults are editable examples, not quotes or verified market rates. Replace them with your own hosting, maintenance and migration figures for a real comparison.</p>
+        <p>Staying cost = hosting ×12 + security patching + maintenance &amp; development + extension fixes (+ optional revenue at risk). Moving cost = one-time migration ÷ the amortisation period + ongoing hosting, maintenance, patches, licence and renewals.</p>
+        <p>Break-even = migration cost ÷ (M1 yearly cost − M2 ongoing cost). Shown only when M2's ongoing cost is actually lower; otherwise the case for moving rests on security and risk, and the calculator says so.</p>
+        <p>Magento 1 reached end of life in June 2020: no official security patches, no quality fixes, PCI attestations increasingly hard to maintain. The "patching" and elevated "maintenance" lines are the operational cost of that fact.</p>
+        <p>"Copy comparison link" stores every input in the URL — the person you send it to lands directly on this verdict with your numbers. Nothing is sent to a server.</p>
+      </div>
+    </details>
+
+    <p class="foot">Magento 1 vs Magento 2 — migration cost calculator · scandiweb</p>
+  </section>
+</div>
+
+<!-- sticky summary -->
+<div class="sticky" id="sticky" aria-hidden="true">
+  <span class="s-item"><span class="s-k">Stay on M1</span><span class="s-v m1c" id="s-m1"></span></span>
+  <span class="s-item"><span class="s-k">Move to M2</span><span class="s-v m2c" id="s-m2"></span></span>
+  <span class="s-item"><span class="s-k">Break-even</span><span class="s-v" id="s-be"></span></span>
+  <a href="#verdict">See verdict ↑</a>
+</div>
+
+<script>
+'use strict';
+/* ── state ──────────────────────────────────────────── */
+const DEFAULTS={sales:5000000,aov:100,skus:2000,cx:'standard',
+  m1h:800,m1p:3600,m1m:24000,m1e:3000,risk:false,riskPct:0.75,
+  mig:null,hz:3,m2h:900,m2m:15000,m2s:0,lic:'oss',licCost:40000,m2e:3000};
+let state={...DEFAULTS};
+let CUR=1, maxVisited=1;
+const LAST=4;
+
+const $=id=>document.getElementById(id);
+const nf=new Intl.NumberFormat('en-US',{maximumFractionDigits:0});
+const money=v=>'$'+nf.format(Math.round(v));
+const compact=v=>'$'+new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:1}).format(v);
+const n=v=>{const x=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isFinite(x)?x:0;};
+
+/* ── model (pure) ───────────────────────────────────── */
+function migEstimate(s){
+  const base={simple:18000,standard:35000,complex:70000}[s.cx];
+  const scale=Math.max(.5,Math.min(2.5,.7+.3*((s.skus||2000)/2000)));
+  return Math.round(base*scale/1000)*1000;
+}
+function model(s){
+  const orders=s.sales/(s.aov||1);
+  const m1lines={'Hosting':s.m1h*12,'Security patching':s.m1p,'Maintenance & development':s.m1m,'Extensions & fixes':s.m1e};
+  const m1notes={};
+  if(s.risk){m1lines['Revenue at risk']=s.sales*s.riskPct/100;m1notes['Revenue at risk']=s.riskPct+'% of sales';}
+  const m1y=Object.values(m1lines).reduce((a,b)=>a+b,0);
+  const lic=s.lic==='adobe'?s.licCost:0;
+  const m2lines={'Hosting':s.m2h*12,'Maintenance & development':s.m2m,'Security patches':s.m2s,'Platform licence':lic,'Extensions & renewals':s.m2e};
+  const m2ong=Object.values(m2lines).reduce((a,b)=>a+b,0);
+  const estimate=migEstimate(s);
+  const migration=s.mig===null?estimate:s.mig;
+  const saving=m1y-m2ong;
+  return {orders,m1lines,m1notes,m1y,m2lines,m2ong,estimate,migration,
+    m2amort:migration/s.hz+m2ong,saving,
+    be:saving>0?migration/saving:Infinity,
+    cum:[1,2,3,4,5].map(y=>({y,m1:m1y*y,m2:migration+m2ong*y}))};
+}
+
+/* ── wizard ─────────────────────────────────────────── */
+function goto(step){
+  step=Math.max(1,Math.min(LAST,step));
+  CUR=step;maxVisited=Math.max(maxVisited,step);
+  document.querySelectorAll('.screen').forEach(sc=>sc.classList.toggle('active',sc.id==='screen-'+step));
+  document.querySelectorAll('.wizbar .wstep').forEach(b=>{
+    const sn=Number(b.dataset.goto);
+    b.classList.toggle('current',sn===step);
+    b.classList.toggle('done',sn<step);
+    b.disabled=sn>maxVisited&&sn!==step;
+    b.setAttribute('aria-current',sn===step?'step':'false');
+  });
+  document.querySelectorAll('.wizbar .wline').forEach(l=>l.classList.toggle('done',Number(l.dataset.line)<step));
+  if(step!==LAST){$('sticky').classList.remove('show');$('sticky').setAttribute('aria-hidden','true');}
+  window.scrollTo({top:0,behavior:'smooth'});
+  writeHash();
+}
+function validateStep(step){
+  if(step!==1)return true;
+  let ok=true;
+  const bad=(fid,cond)=>{$(fid).classList.toggle('invalid',cond);if(cond)ok=false;};
+  bad('f-sales',!(state.sales>0));
+  bad('f-aov',!(state.aov>0));
+  if(!ok)document.querySelector('.q.invalid input')?.focus();
+  return ok;
+}
+document.querySelectorAll('form.screen').forEach(f=>f.addEventListener('submit',e=>{
+  e.preventDefault();
+  const step=Number(f.id.slice(-1));
+  if(validateStep(step))goto(step+1);
+}));
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-goto]');
+  if(g&&!g.disabled)goto(Number(g.dataset.goto));
+});
+
+/* ── chart ──────────────────────────────────────────── */
+function niceMax(v){const p=Math.pow(10,Math.floor(Math.log10(Math.max(1,v))));for(const m of [1,1.5,2,2.5,3,4,5,7.5,10])if(m*p>=v)return m*p;return v;}
+function drawChart(r){
+  const YRS=5,L=62,R=14,T=14,B=30,W=640,H=250,iw=W-L-R,ih=H-T-B;
+  const maxY=niceMax(Math.max(r.m1y*YRS,r.migration+r.m2ong*YRS,1));
+  const X=t=>L+iw*t/YRS,Y=v=>T+ih*(1-v/maxY);
+  let s='';
+  for(let i=0;i<=4;i++){const v=maxY*i/4,y=Y(v);
+    s+=`<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="#dce2dc" stroke-width="${i===0?1.4:1}" ${i>0?'stroke-dasharray="3 4"':''}/>`;
+    s+=`<text x="${L-8}" y="${y+4}" text-anchor="end" font-size="11" fill="#6a7872">${compact(v)}</text>`;}
+  for(let t=0;t<=YRS;t++)s+=`<text x="${X(t)}" y="${H-8}" text-anchor="middle" font-size="11" fill="#6a7872">${t===0?'now':t+'yr'}</text>`;
+  s+=`<path d="M ${X(0)} ${Y(0)} L ${X(YRS)} ${Y(r.m1y*YRS)}" fill="none" stroke="#bb673f" stroke-width="3" stroke-linecap="round"/>`;
+  s+=`<path d="M ${X(0)} ${Y(r.migration)} L ${X(YRS)} ${Y(r.migration+r.m2ong*YRS)}" fill="none" stroke="#245e4e" stroke-width="3" stroke-linecap="round"/>`;
+  s+=`<circle cx="${X(0)}" cy="${Y(r.migration)}" r="4" fill="#245e4e"/>`;
+  if(isFinite(r.be)&&r.be>0&&r.be<=YRS){
+    const bx=X(r.be),by=Y(r.m1y*r.be);
+    s+=`<line x1="${bx}" y1="${by}" x2="${bx}" y2="${T+ih}" stroke="#245e4e" stroke-width="1" stroke-dasharray="3 3"/>`;
+    s+=`<circle cx="${bx}" cy="${by}" r="5.5" fill="#fff" stroke="#245e4e" stroke-width="2.5"/>`;
+    const right=r.be>YRS*.68;
+    s+=`<text x="${right?bx-10:bx+10}" y="${by-12}" text-anchor="${right?'end':'start'}" font-size="12" font-weight="700" fill="#245e4e" stroke="#f7f8f4" stroke-width="4" paint-order="stroke">break-even ~${r.be<1?Math.round(r.be*12)+' mo':r.be.toFixed(1)+' yrs'}</text>`;
+  }
+  $('chart').innerHTML=s;
+}
+
+/* ── render ─────────────────────────────────────────── */
+const lineHTML=(obj,notes={})=>Object.entries(obj).map(([k,v])=>
+  `<div class="line"><span class="lbl">${k}${notes[k]?`<small>${notes[k]}</small>`:''}</span><span class="val">${money(v)}</span></div>`).join('');
+
+function render(){
+  const r=model(state);
+  $('orders-note').innerHTML=state.sales>0&&state.aov>0?`That's about <b>${nf.format(r.orders)} orders a year</b>.`:'';
+  $('mig-basis').textContent=state.mig===null
+    ?`We estimated ${money(r.estimate)} for a ${state.cx} store with ${nf.format(state.skus)} SKUs. Edit it if you have a quote.`
+    :`Your figure. Our estimate for a ${state.cx} store with ${nf.format(state.skus)} SKUs is ${money(r.estimate)}.`;
+  $('reest').hidden=state.mig===null;
+  const pct=v=>state.sales>0?`· ${(v/state.sales*100).toFixed(2)}% of sales`:'';
+  $('m1-live').textContent=money(r.m1y)+' /yr';$('m1-live-pct').textContent=pct(r.m1y);
+  $('m2-live').textContent=money(r.m2ong)+' /yr';$('m2-live-pct').textContent=pct(r.m2ong);
+  const beTxt=r.be<1?'under a year':'~'+r.be.toFixed(1)+' years';
+  if(r.saving>0){
+    $('verdict-big').innerHTML=`Staying on Magento 1 costs <b>${money(r.m1y)}/year</b>. Moving pays back in <b class="be">${beTxt}</b>, then costs <b class="save">${money(r.saving)}/year less</b>.`;
+    $('verdict-note').textContent=`After the one-time ${money(r.migration)} migration, Magento 2 runs ${money(r.saving)} cheaper every year — with official security patches, modern performance and a normal developer market.`;
+  }else{
+    $('verdict-big').innerHTML=`On running costs alone, Magento 2 isn't cheaper here — the real cost of Magento 1 is risk.`;
+    $('verdict-note').textContent=`Your M2 ongoing cost (${money(r.m2ong)}/yr) is at or above M1's (${money(r.m1y)}/yr). The case for moving rests on security, uptime and hiring — see "What the numbers don't show". Adjust the licence or maintenance inputs to compare like for like.`;
+  }
+  $('verdict-share').hidden=!(state.sales>0&&r.saving>0);
+  $('verdict-share').textContent=`That's ${(r.m1y/Math.max(1,state.sales)*100).toFixed(2)}% of your yearly sales spent keeping an unsupported platform alive.`;
+  $('based-txt').textContent=`Based on ${money(state.sales)} yearly sales · ${money(state.aov)} AOV · ${nf.format(state.skus)} SKUs · ${state.cx} build`;
+  $('m1-lines').innerHTML=lineHTML(r.m1lines,r.m1notes);
+  $('m1-total').textContent=money(r.m1y)+' /yr';
+  $('m2-mig').textContent=money(r.migration);
+  $('m2-lines').innerHTML=lineHTML(r.m2lines);
+  $('m2-total').textContent=money(r.m2amort)+' /yr';
+  $('m2-total-lbl').textContent=`${money(r.migration)} ÷ ${state.hz}yr + ${money(r.m2ong)} ongoing`;
+  drawChart(r);
+  $('cum-capt').textContent=isFinite(r.be)&&r.be<=5
+    ?'Total spent on each path. Magento 2 starts higher (the migration), then the lines cross — everything after that point is savings.'
+    :isFinite(r.be)?`Total spent on each path. With these inputs the lines cross after year ${Math.ceil(r.be)} — beyond this chart.`
+    :'Total spent on each path. With these inputs the lines never cross on running costs alone — the case for moving is security and risk, not spend.';
+  let crossed=false;
+  $('cum-body').innerHTML=r.cum.map(({y,m1,m2})=>{
+    const m2c=m2<m1,be=m2c&&!crossed;if(m2c)crossed=true;
+    const max=Math.max(m1,m2)||1;
+    return `<tr class="${be?'be-row':''}"><td>${y} year${y>1?'s':''}${be?' · break-even':''}</td>
+      <td class="${!m2c?'cheaper m1v':''}">${money(m1)}</td><td class="${m2c?'cheaper m2v':''}">${money(m2)}</td>
+      <td>${m2c?'M2 −':'M1 −'}${money(Math.abs(m1-m2))}</td>
+      <td><div class="bar"><i style="width:${m2/max*100}%;background:var(--green)"></i><i style="width:${Math.max(0,m1-m2)/max*100}%;background:var(--orange)"></i></div></td></tr>`;
+  }).join('');
+  $('s-m1').textContent=money(r.m1y)+'/yr';
+  $('s-m2').textContent=money(r.m2amort)+'/yr';
+  $('s-be').textContent=isFinite(r.be)?(r.be<1?Math.round(r.be*12)+' mo':'~'+r.be.toFixed(1)+' yrs'):'—';
+  syncPresets();writeHash();
+}
+
+/* ── inputs ↔ state ─────────────────────────────────── */
+function fillInputs(){
+  $('sales').value=state.sales?state.sales.toLocaleString('en-US'):'';
+  for(const k of ['aov','skus','m1h','m1p','m1m','m1e','riskPct','m2h','m2m','m2s','licCost','m2e'])$(k).value=state[k];
+  $('mig').value=state.mig===null?migEstimate(state):state.mig;
+  $('hz').value=String(state.hz);
+  document.querySelector(`#cx-seg input[value="${state.cx}"]`).checked=true;
+  document.querySelector(`#lic-seg input[value="${state.lic}"]`).checked=true;
+  $('risk').checked=state.risk;
+  syncSeg('cx-seg',state.cx);syncSeg('lic-seg',state.lic);
+  $('risk-wrap').hidden=!state.risk;$('lic-wrap').hidden=state.lic!=='adobe';
+}
+function syncSeg(id,val){document.querySelectorAll('#'+id+' label[data-v]').forEach(l=>l.classList.toggle('on',l.dataset.v===val));}
+
+document.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('input',()=>{
+  const k=el.dataset.k;
+  if(k==='sales'){const c=el.value.replace(/[^0-9]/g,'');state.sales=Number(c)||0;el.value=c?Number(c).toLocaleString('en-US'):'';$('f-sales').classList.remove('invalid');}
+  else if(k==='aov'){state.aov=n(el.value);$('f-aov').classList.remove('invalid');}
+  else if(k==='mig'){state.mig=n(el.value);}
+  else{state[k]=n(el.value);if(k==='skus'&&state.mig===null)$('mig').value=migEstimate(state);}
+  render();
+}));
+$('cx-seg').addEventListener('change',e=>{state.cx=e.target.value;syncSeg('cx-seg',state.cx);if(state.mig===null)$('mig').value=migEstimate(state);render();});
+$('lic-seg').addEventListener('change',e=>{state.lic=e.target.value;syncSeg('lic-seg',state.lic);$('lic-wrap').hidden=state.lic!=='adobe';render();});
+$('risk').addEventListener('change',()=>{state.risk=$('risk').checked;$('risk-wrap').hidden=!state.risk;render();});
+$('hz').addEventListener('change',()=>{state.hz=parseInt($('hz').value,10);render();});
+$('reest').addEventListener('click',()=>{state.mig=null;$('mig').value=migEstimate(state);render();});
+
+/* presets: quiet text links */
+const PRESETS=[1,5,10,25,50];
+PRESETS.forEach((m,i)=>{
+  const b=document.createElement('button');
+  b.type='button';b.className='plink';b.textContent='$'+m+'M';b.setAttribute('aria-pressed','false');
+  b.addEventListener('click',()=>{state.sales=m*1e6;$('sales').value=state.sales.toLocaleString('en-US');$('f-sales').classList.remove('invalid');render();});
+  $('sales-presets').append(b);
+  if(i<PRESETS.length-1)$('sales-presets').append(document.createTextNode(' · '));
+});
+function syncPresets(){[...$('sales-presets').querySelectorAll('.plink')].forEach((b,i)=>b.setAttribute('aria-pressed',String(PRESETS[i]*1e6===state.sales)));}
+
+/* ── share link (hash = state + step) ───────────────── */
+let hashTimer=null;
+function writeHash(){clearTimeout(hashTimer);hashTimer=setTimeout(()=>{try{history.replaceState(null,'','#'+encodeURIComponent(JSON.stringify({...state,step:CUR})));}catch(e){}},150);}
+function readHash(){
+  try{const raw=JSON.parse(decodeURIComponent(location.hash.slice(1)));
+    if(!raw||typeof raw!=='object')return null;
+    for(const k of Object.keys(DEFAULTS)){
+      if(raw[k]===undefined)continue;
+      if(k==='cx')state.cx=['simple','standard','complex'].includes(raw.cx)?raw.cx:state.cx;
+      else if(k==='lic')state.lic=['oss','adobe'].includes(raw.lic)?raw.lic:state.lic;
+      else if(k==='hz')state.hz=[1,2,3,5].includes(Number(raw.hz))?Number(raw.hz):state.hz;
+      else if(k==='risk')state.risk=!!raw.risk;
+      else if(k==='mig')state.mig=raw.mig===null?null:n(raw.mig);
+      else state[k]=n(raw[k]);
+    }
+    const st=Number(raw.step);
+    return st>=1&&st<=LAST?st:null;
+  }catch(e){return null;}
+}
+
+/* ── actions ────────────────────────────────────────── */
+$('copylink').addEventListener('click',async()=>{
+  clearTimeout(hashTimer);
+  try{history.replaceState(null,'','#'+encodeURIComponent(JSON.stringify({...state,step:LAST})));}catch(e){}
+  const b=$('copylink'),old=b.textContent;
+  try{await navigator.clipboard.writeText(location.href);b.textContent='Link copied ✓';}
+  catch(e){b.textContent='Copy the address bar URL';}
+  setTimeout(()=>b.textContent=old,1800);
+});
+$('csvbtn').addEventListener('click',()=>{
+  const r=model(state);
+  const rows=[['Line','Stay on Magento 1 (USD/yr)','Move to Magento 2 (USD/yr)']];
+  new Set([...Object.keys(r.m1lines),...Object.keys(r.m2lines)]).forEach(k=>
+    rows.push([k,r.m1lines[k]!=null?Math.round(r.m1lines[k]):'',r.m2lines[k]!=null?Math.round(r.m2lines[k]):'']));
+  rows.push(['One-time migration','',Math.round(r.migration)]);
+  rows.push(['Yearly total',Math.round(r.m1y),Math.round(r.m2amort)+' (amortised over '+state.hz+'yr)']);
+  rows.push([]);rows.push(['After N years','Stay on M1 cumulative','Move to M2 cumulative']);
+  r.cum.forEach(({y,m1,m2})=>rows.push([y+' yr',Math.round(m1),Math.round(m2)]));
+  if(isFinite(r.be))rows.push(['Break-even (years)',r.be.toFixed(2),'']);
+  const csv=rows.map(row=>row.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='magento1-vs-magento2-costs.csv';a.click();URL.revokeObjectURL(a.href);
+});
+$('printbtn').addEventListener('click',()=>window.print());
+$('resetall').addEventListener('click',()=>{
+  state={...DEFAULTS};maxVisited=1;fillInputs();
+  history.replaceState(null,'',location.pathname);render();goto(1);
+});
+
+/* ── sticky summary (results screen only) ───────────── */
+if('IntersectionObserver' in window){
+  new IntersectionObserver(([e])=>{
+    const below=CUR===LAST&&!e.isIntersecting&&e.boundingClientRect.top<0;
+    $('sticky').classList.toggle('show',below);
+    $('sticky').setAttribute('aria-hidden',String(!below));
+  },{threshold:0}).observe($('verdict'));
+}
+
+/* ── boot ───────────────────────────────────────────── */
+const startStep=readHash();
+if(startStep&&startStep>1)maxVisited=LAST; /* shared link: everything unlocked */
+fillInputs();render();
+goto(startStep||1);
+</script>
+</body>
+</html>
